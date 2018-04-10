@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ex1complete">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/ex1complete.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
