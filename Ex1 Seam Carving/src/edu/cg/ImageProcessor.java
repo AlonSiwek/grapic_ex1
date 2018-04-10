@@ -121,15 +121,15 @@ public class ImageProcessor extends FunctioalForEachLoops {
 
 			double dxRed = Math.pow(currPixGrey.getRed() - nextXpixGrey.getRed(), 2);
 			double dyRed = Math.pow(currPixGrey.getRed() - nextYpixGrey.getRed(), 2);
-			int magRed = (int) Math.sqrt((dxRed - dyRed) / 2);
+			int magRed = (int) Math.sqrt((dxRed + dyRed) / 2);
 
 			double dxGreen = Math.pow(currPixGrey.getGreen() - nextXpixGrey.getGreen(), 2);
 			double dyGreen = Math.pow(currPixGrey.getGreen() - nextYpixGrey.getGreen(), 2);
-			int magGreen = (int) Math.sqrt((dxGreen - dyGreen) / 2);
+			int magGreen = (int) Math.sqrt((dxGreen + dyGreen) / 2);
 
 			double dxBlue = Math.pow(currPixGrey.getBlue() - nextXpixGrey.getBlue(), 2);
 			double dyBlue = Math.pow(currPixGrey.getBlue() - nextYpixGrey.getBlue(), 2);
-			int magBlue = (int) Math.sqrt((dxBlue - dyBlue) / 2);
+			int magBlue = (int) Math.sqrt((dxBlue + dyBlue) / 2);
 
 			Color cMag = new Color(magRed, magGreen, magBlue);
 			ans.setRGB(x, y, cMag.getRGB());
@@ -142,13 +142,13 @@ public class ImageProcessor extends FunctioalForEachLoops {
 	
 	public BufferedImage nearestNeighbor() {
 		logger.log("Prepareing for nearest neighbor changing...");
-		BufferedImage ans = newEmptyOutputSizedImage();
-		//the relation between in and out image
-		double newX = inWidth / outWidth;
-		double newY = inHeight / outHeight;
-		setForEachParameters(outWidth, outHeight);
 
-		
+		//the relation between in and out image
+		double newX = inWidth / (double)(outWidth + 1);
+		double newY = inHeight / (double)(outHeight + 1);
+		BufferedImage ans = newEmptyOutputSizedImage();
+		setForEachOutputParameters();
+
 		forEach((y, x) -> {
 			int x_nearestNeighbor = (int) Math.round(x * newX);
 			int y_nearestNeighbor = (int) Math.round(y * newY);
@@ -158,14 +158,16 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			if (y_nearestNeighbor > inHeight - 1)
 				y_nearestNeighbor = inHeight - 1;
 
-
 			Color color = new Color(workingImage.getRGB(x_nearestNeighbor, y_nearestNeighbor));
+
 			ans.setRGB(x, y, color.getRGB());
 		});
 
 
 		logger.log("Changing nearest neighbor done!");
 		return ans;
+
+
 	}
 	
 	public BufferedImage bilinear() {
