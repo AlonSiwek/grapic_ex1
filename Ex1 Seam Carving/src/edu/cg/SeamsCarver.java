@@ -16,6 +16,8 @@ public class SeamsCarver extends ImageProcessor {
 	private ResizeOperation resizeOp;
 	private long[][] energyMatrix;
 	private long[][] costMatrix;
+	private int[][] imageMatrix;
+	private char[][] trackingtMatrix;
 	private int workWidth;
 
 
@@ -41,45 +43,114 @@ public class SeamsCarver extends ImageProcessor {
 			resizeOp = this::duplicateWorkingImage;
 
 		//TODO: Initialize your additional fields and apply some preliminary calculations:
-		energyMatrix = new long[inWidth][inHeight];
-		costMatrix = new long[inWidth][inHeight];
 		workWidth = inWidth;
-		initEnergyMatrix();
+		initialCalculations();
 	}
 
-	private void initEnergyMatrix() {
+	private void initialCalculations() {
 		BufferedImage mag = gradientMagnitude();
+		energyMatrix = new long[inHeight][workWidth];
+		imageMatrix = new int[inHeight][workWidth];
 
-		forEach((y, x) -> {
-			Color pix = new Color(mag.getRGB(x, y));
-			energyMatrix[x][y] = pix.getBlue();
-		});
+		for (int i = 0; i < inHeight; i++) {
+			for (int j = 0; j < workWidth; j++) {
+				Color pix = new Color(mag.getRGB(j, i));
+				energyMatrix[i][j] = pix.getBlue();
+				imageMatrix[i][j] = workingImage.getRGB(j, i);
+			}
+		}
 	}
 
 	private void calculateCostMatrix() {
+		costMatrix = new long[inHeight][workWidth];
+		trackingtMatrix = new char[inHeight][workWidth];
+
+		long min, left, right, up;
 
 //		 IMPLEMENT FORWARD LOOKING //
-			forEach((y, x) -> {
-				long left = (((x - 1) > 0) && ((y - 1) > 0)) ? energyMatrix[x - 1][y - 1] : 255;
-				long up = ((x - 1) > 0) ? energyMatrix[x - 1][y] : 255;
-				long right = (((x - 1) > 0) && ((y + 1) < inHeight)) ? energyMatrix[x - 1][y + 1] : 255;
-				costMatrix[x][y] = energyMatrix[x][y] + Math.min(up, Math.min(left, right));
-			});
+		for (int i = 0; i < inHeight; i++) {
+			for (int j = 0; j < workWidth; j++) {
+
+				// first row
+				if(i == 0){
+					costMatrix[i][j] = energyMatrix[i][j];
+					trackingtMatrix[i][j] = 's';
+				} else {
+					up = costMatrix[i - 1][j];
+					right = (j < workWidth - 1) ? costMatrix[i - 1][j + 1] : Long.MAX_VALUE;
+					left = (j > 0) ? costMatrix[i - 1][j - 1] : Long.MAX_VALUE;
+					min = Math.min(left, Math.min(up, right));
+					costMatrix[i][j] = energyMatrix[i][j] + min;
+
+					if(min == left){
+						trackingtMatrix[i][j] = 'l';
+					} else if (min == up) {
+						trackingtMatrix[i][j] = 'u';
+					} else {
+						trackingtMatrix[i][j] = 'r';
+					}
+				}
+			}
+		}
 	}
 
 	private Seam findMinSeam(){
 		Seam seam = new Seam(inHeight);
+		int col = 0;
 		long min = Long.MAX_VALUE;
-		for (int i = 0; i < workWidth; i++) {
-			if(energyMatrix[i][inHeight] < min){
-				min = i;
+		for (int j = 0; j < workWidth; j++) {
+			if(costMatrix[inHeight - 1][j] < min){
+				min = costMatrix[inHeight - 1][j];
+				col = j;
+			}
+		}
+
+		System.out.println("Found min: " + min + " at index: " + col);
+
+		// backtrack
+		for (int i = inHeight - 1; i > 0; i--) {
+			seam.addPixelToTail(col);
+			switch (trackingtMatrix[i][col]){
+				case 'l':
+					col =  col - 1;
+//					System.out.println("Tracking. Took left. idx: " + idx + " at row: " + i);
+					break;
+				case 'r':
+					col = col + 1;
+//					System.out.println("Tracking. Took right. idx: " + idx + " at row: " + i);
+					break;
+				case 's':
+//					System.out.println("Stopped Tracking. idx: " + idx + " at row: " + i);
+					break;
+				default:
+//					System.out.println("Tracking. Took up. idx: " + idx + " at row: " + i);
+					break;
 			}
 		}
 		return seam;
 	}
 
-	private void removeSeam(){
+	private void removeSeam(Seam seam){
 
+		workWidth--;
+		long [][] tmpEnergyMatrix = new long[inHeight][workWidth];
+		int[][] tmpImageMatrix = new int[inHeight][workWidth];
+		int shift, shiftCol;
+
+		for (int i = 0; i < inHeight; i++) {
+			shift = 0;
+			shiftCol = seam.getPixCol(i);
+			for (int j = 0; j < workWidth; j++) {
+				if(j == shiftCol){
+					shift = 1;
+				}
+				tmpImageMatrix[i][j] = imageMatrix[i][j + shift];
+				tmpEnergyMatrix[i][j] = energyMatrix[i][j + shift];
+			}
+		}
+
+		imageMatrix = tmpImageMatrix;
+		energyMatrix = tmpEnergyMatrix;
 	}
 
 	//MARK: Methods
@@ -93,17 +164,57 @@ public class SeamsCarver extends ImageProcessor {
 //			initEnergyMatrix();
 			calculateCostMatrix();
 			Seam seam = findMinSeam();
-			// workingImage = removeSeam(seam)
+			removeSeam(seam);
 		}
 
-		BufferedImage image =  newEmptyOutputSizedImage();
-		return image;///image;
-//		throw new UnimplementedMethodException("reduceImageWidth");
+		BufferedImage outImage =  newEmptyOutputSizedImage();
+		for (int i = 0; i < inHeight; i++) {
+			for (int j = 0; j < workWidth; j++) {
+				outImage.setRGB(j,i, imageMatrix[i][j]);
+			}
+		}
+
+		return outImage;
 	}
 
 	private BufferedImage increaseImageWidth() {
-		//TODO: Implement this method, remove the exception.
-		throw new UnimplementedMethodException("increaseImageWidth");
+		Seam[] seams = new Seam[numOfSeams];
+		int shift = 0;
+
+		for (int i = 0; i < numOfSeams; i++) {
+//			initEnergyMatrix();
+			calculateCostMatrix();
+			Seam seam = findMinSeam();
+			seams[i] = seam;
+			removeSeam(seam);
+		}
+
+		// convert seams to original positions
+		for (int i = 0; i < inHeight; i++) {
+			for (int k = 0; k < numOfSeams; k++) {
+				for (int l = 0; l < k; l++) {
+					if(seams[l].getPixCol(i) <= seams[l].getPixCol(i)){
+						seams[l].shiftSeam(i, k);
+					}
+				}
+			}
+		}
+
+		BufferedImage outImage = newEmptyOutputSizedImage();
+		for (int i = 0; i < inHeight; i++) {
+			shift = 0;
+
+			for (int j = 0; j < outWidth; j++) {
+
+				for (int k = 0; k < numOfSeams; k++) {
+					if(seams[k].getPixCol(i) == j){
+						shift ++;
+					}
+				}
+				outImage.setRGB(j, i, imageMatrix[i][j]);
+			}
+		}
+		return outImage;
 	}
 
 	public BufferedImage showSeams(int seamColorRGB) {
