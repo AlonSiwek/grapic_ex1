@@ -214,7 +214,7 @@ public class SeamsCarver extends ImageProcessor {
 				outImage.setRGB(j, i, workingImage.getRGB((j - shift), i ));
 
 				for (int k = 0; k < numOfSeams; k++) {
-					if (seams[k].getPixCol(i) + seams[k].getColShift(i) == j) {
+					if (seams[k].getPixCol(i) + seams[k].getColShift(i) == j ) {
 						shift++;
 //						System.out.println("row " + i + " col j " + j + " seam " + k +" seamPos " + seams[k].getPixCol(i)  + " shift " + seams[k].getColShift(i));
 					}

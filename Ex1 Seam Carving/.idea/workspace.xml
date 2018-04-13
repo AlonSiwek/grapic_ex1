@@ -18,8 +18,8 @@
       <file leaf-file-name="SeamsCarver.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/edu/cg/SeamsCarver.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="290">
-              <caret line="203" column="13" lean-forward="true" selection-start-line="203" selection-start-column="13" selection-end-line="203" selection-end-column="13" />
+            <state relative-caret-position="411">
+              <caret line="216" column="80" lean-forward="true" selection-end-line="232" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#3141#3142#0" expanded="true" />
@@ -32,8 +32,8 @@
       <file leaf-file-name="Seam.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cg/Seam.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="396">
-              <caret line="22" column="21" lean-forward="true" selection-start-line="22" selection-start-column="21" selection-end-line="22" selection-end-column="21" />
+            <state relative-caret-position="450">
+              <caret line="25" column="42" selection-start-line="25" selection-start-column="42" selection-end-line="25" selection-end-column="42" />
               <folding>
                 <element signature="e#403#404#0" expanded="true" />
                 <element signature="e#435#436#0" expanded="true" />
@@ -339,8 +339,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cg/Seam.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="22" column="21" lean-forward="true" selection-start-line="22" selection-start-column="21" selection-end-line="22" selection-end-column="21" />
+        <state relative-caret-position="450">
+          <caret line="25" column="42" selection-start-line="25" selection-start-column="42" selection-end-line="25" selection-end-column="42" />
           <folding>
             <element signature="e#403#404#0" expanded="true" />
             <element signature="e#435#436#0" expanded="true" />
@@ -354,8 +354,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cg/SeamsCarver.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="290">
-          <caret line="203" column="13" lean-forward="true" selection-start-line="203" selection-start-column="13" selection-end-line="203" selection-end-column="13" />
+        <state relative-caret-position="411">
+          <caret line="216" column="80" lean-forward="true" selection-end-line="232" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#3141#3142#0" expanded="true" />

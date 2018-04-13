@@ -23,7 +23,7 @@ public class Seam {
     public int getColShift(int i){
         return seamShifts[i];
     }
-    public void shiftSeam(int i, int k){
-        seamShifts[i] = k;
+    public void shiftSeam(int i, int shift){
+        seamShifts[i] = shift;
     }
 }
