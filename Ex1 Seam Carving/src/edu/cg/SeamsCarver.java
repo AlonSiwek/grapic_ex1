@@ -105,7 +105,7 @@ public class SeamsCarver extends ImageProcessor {
 			}
 		}
 
-		System.out.println("Found min: " + min + " at index: " + col);
+//		System.out.println("Found min: " + min + " at index: " + col);
 
 		// backtrack
 		for (int i = inHeight - 1; i > 0; i--) {
@@ -192,26 +192,34 @@ public class SeamsCarver extends ImageProcessor {
 		// convert seams to original positions
 		for (int i = 0; i < inHeight; i++) {
 			for (int k = 0; k < numOfSeams; k++) {
+				shift = 0;
 				for (int l = 0; l < k; l++) {
-					if(seams[l].getPixCol(i) <= seams[l].getPixCol(i)){
-						seams[l].shiftSeam(i, k);
+					if(seams[k].getPixCol(i) >= seams[l].getPixCol(i)){
+						shift ++;
+						//account for previous shift??
 					}
 				}
+				seams[k].shiftSeam(i, shift);
+//				System.out.println("row " + i  + " seam " + k +" seamPos " + seams[k].getPixCol(i)  + " shift " + shift);
 			}
 		}
 
 		BufferedImage outImage = newEmptyOutputSizedImage();
+
 		for (int i = 0; i < inHeight; i++) {
 			shift = 0;
 
 			for (int j = 0; j < outWidth; j++) {
 
+				outImage.setRGB(j, i, workingImage.getRGB((j - shift), i ));
+
 				for (int k = 0; k < numOfSeams; k++) {
-					if(seams[k].getPixCol(i) == j){
-						shift ++;
+					if (seams[k].getPixCol(i) + seams[k].getColShift(i) == j) {
+						shift++;
+//						System.out.println("row " + i + " col j " + j + " seam " + k +" seamPos " + seams[k].getPixCol(i)  + " shift " + seams[k].getColShift(i));
 					}
 				}
-				outImage.setRGB(j, i, imageMatrix[i][j]);
+
 			}
 		}
 		return outImage;

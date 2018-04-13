@@ -2,10 +2,12 @@ package edu.cg;
 
 public class Seam {
     private int[] pixels;
+    private int[] seamShifts;
     private int tailPosition;
 
     public Seam(int length){
         pixels = new int[length];
+        seamShifts = new int[length];
         tailPosition = length - 1;
     }
 
@@ -18,7 +20,10 @@ public class Seam {
         return pixels[i];
     }
 
+    public int getColShift(int i){
+        return seamShifts[i];
+    }
     public void shiftSeam(int i, int k){
-        pixels[i] += k;
+        seamShifts[i] = k;
     }
 }
