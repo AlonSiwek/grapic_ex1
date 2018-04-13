@@ -193,8 +193,8 @@ public class SeamsCarver extends ImageProcessor {
 		for (int i = 0; i < inHeight; i++) {
 			for (int k = 0; k < numOfSeams; k++) {
 				shift = 0;
-				for (int l = 0; l < k; l++) {
-					if(seams[k].getPixCol(i) >= seams[l].getPixCol(i)){
+				for (int l = k; l > 0; l--) {
+					if(seams[k].getPixCol(i) + shift >= seams[l].getPixCol(i)){
 						shift ++;
 						//account for previous shift??
 					}
@@ -208,8 +208,14 @@ public class SeamsCarver extends ImageProcessor {
 
 		for (int i = 0; i < inHeight; i++) {
 			shift = 0;
+			boolean flag = true;
 
 			for (int j = 0; j < outWidth; j++) {
+
+				if(j-shift<0 || j -shift > inWidth){
+					System.out.println(" ------------------------------------- row " + i  + " col " + j + " shift " + shift);
+
+				}
 
 				outImage.setRGB(j, i, workingImage.getRGB((j - shift), i ));
 
@@ -218,6 +224,13 @@ public class SeamsCarver extends ImageProcessor {
 						shift++;
 //						System.out.println("row " + i + " col j " + j + " seam " + k +" seamPos " + seams[k].getPixCol(i)  + " shift " + seams[k].getColShift(i));
 					}
+				}
+
+
+
+				if(shift == numOfSeams && flag) {
+//					System.out.println("row " + i  + " col " + j + " shift " + shift);
+//					flag =false;
 				}
 
 			}
