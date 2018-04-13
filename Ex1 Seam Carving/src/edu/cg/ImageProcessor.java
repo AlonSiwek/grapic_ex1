@@ -119,6 +119,8 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			Color nextXpixGrey = new Color(greyImg.getRGB(nextXpix, y));
 			Color nextYpixGrey = new Color(greyImg.getRGB(x, nextYpix));
 
+
+			//calculating magnitude for each color
 			double dxRed = Math.pow(currPixGrey.getRed() - nextXpixGrey.getRed(), 2);
 			double dyRed = Math.pow(currPixGrey.getRed() - nextYpixGrey.getRed(), 2);
 			int magRed = (int) Math.sqrt((dxRed + dyRed) / 2);
@@ -130,6 +132,20 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			double dxBlue = Math.pow(currPixGrey.getBlue() - nextXpixGrey.getBlue(), 2);
 			double dyBlue = Math.pow(currPixGrey.getBlue() - nextYpixGrey.getBlue(), 2);
 			int magBlue = (int) Math.sqrt((dxBlue + dyBlue) / 2);
+
+			//checking color boundries (0 - 255)
+			if (magBlue > 255)
+				magBlue = 255;
+			if (magBlue < 0)
+				magBlue = 0;
+			if (magRed > 255)
+				magRed = 255;
+			if (magRed < 0)
+				magRed = 0;
+			if (magGreen > 255)
+				magGreen = 255;
+			if (magGreen < 0)
+				magGreen = 0;
 
 			Color cMag = new Color(magRed, magGreen, magBlue);
 			ans.setRGB(x, y, cMag.getRGB());
@@ -153,6 +169,7 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			int x_nearestNeighbor = (int) Math.round(x * newX);
 			int y_nearestNeighbor = (int) Math.round(y * newY);
 
+			//checking boundries
 			if (x_nearestNeighbor > inWidth - 1)
 				x_nearestNeighbor = inWidth - 1;
 			if (y_nearestNeighbor > inHeight - 1)
@@ -171,8 +188,95 @@ public class ImageProcessor extends FunctioalForEachLoops {
 	}
 	
 	public BufferedImage bilinear() {
-		//TODO: Implement this method, remove the exception.
-		throw new UnimplementedMethodException("bilinear");
+		logger.log("Prepareing for bilinear interpulation...");
+
+		//the relation between in and out image
+		double newX = inWidth / (outWidth + 1.0);
+		double newY = inHeight / (outHeight + 1.0);
+
+		//BufferedImage ans = newEmptyOutputSizedImage();
+		BufferedImage ans = new BufferedImage(outWidth, outHeight, 01);
+
+
+		double tmpY = newY;
+		double tmpX = newX;
+		int x_topLeft, x_topRight, x_bottomRight, x_bottomLeft;
+		int y_topLeft, y_topRight, y_bottomRight, y_bottomLeft;
+
+		for (int i = 0; i < outWidth; i++) {
+			for (int j = 0; j < outHeight; j++) {
+
+				//initiate neighbors
+				x_bottomLeft = x_bottomRight = x_topLeft = x_topRight = (int)Math.floor(tmpX);
+				y_bottomLeft = y_bottomRight = y_topLeft = y_topRight = (int)Math.floor(tmpY);
+
+				//checking boundries
+
+				//checking width boundries
+				if (x_topRight == inWidth - 1)
+					x_topRight = inWidth - 1;
+				if (x_bottomRight == inWidth - 1)
+					x_bottomRight = inWidth - 1;
+				if (x_topLeft == 0)
+					x_topLeft = 0;
+				if (x_bottomLeft == 0)
+					x_bottomLeft = 0;
+
+				//checking height boundries
+				if (y_bottomLeft == 0)
+					y_bottomLeft = 0;
+				if (y_bottomRight == 0)
+					y_bottomRight = 0;
+				if (y_topLeft == inHeight - 1)
+					y_topLeft = inHeight - 1;
+				if (y_topRight == inHeight - 1)
+					y_topRight = inHeight - 1;
+
+				//calculating u and v vectors
+				double u = Math.abs(x_bottomLeft - tmpX);
+				double v = Math.abs(y_bottomRight - tmpY);
+
+				//creating neighbors colors
+				Color topLeftColor = new Color(workingImage.getRGB(x_topLeft, y_topLeft));
+				Color topRightColor = new Color(workingImage.getRGB(x_topRight, y_topRight));
+				Color bottomLeftColor = new Color(workingImage.getRGB(x_bottomLeft, y_bottomLeft));
+				Color bottomRightColor = new Color(workingImage.getRGB(x_bottomRight, y_bottomRight));
+
+				//calculating S and N for each color
+				int redNewVal = (int) (((int) ((bottomLeftColor.getRed() * u) + (bottomRightColor.getRed() * (1 - u))) * v) +
+						(int) ((topLeftColor.getRed() * u) + (topRightColor.getRed() * (1 - u))) * (1 - v));
+
+				int greenNewVal = (int) ((((bottomLeftColor.getGreen() * u) + (bottomRightColor.getGreen() * (1 - u))) * v) +
+						((int) ((topLeftColor.getGreen() * u) + (topRightColor.getGreen() * (1 - u))) * (1 - v)));
+
+				int blueNewVal = (int) (((int) ((bottomRightColor.getBlue() * u) + (bottomLeftColor.getBlue() * (1 - u))) * v) +
+						((int) ((topLeftColor.getBlue() * u) + (topRightColor.getBlue() * (1 - u))) * (1 - v)));
+
+				//checking color boundries (0 - 255)
+				if (blueNewVal > 255)
+					blueNewVal = 255;
+				if (blueNewVal < 0)
+					blueNewVal = 0;
+				if (redNewVal > 255)
+					redNewVal = 255;
+				if (redNewVal < 0)
+					redNewVal = 0;
+				if (greenNewVal > 255)
+					greenNewVal = 255;
+				if (greenNewVal < 0)
+					greenNewVal = 0;
+
+				Color color = new Color(redNewVal, greenNewVal, blueNewVal);
+
+				ans.setRGB(i, j, color.getRGB());
+				tmpY += newY;
+			}
+			tmpX += newX;
+			tmpY = 0;
+		}
+
+		logger.log("Changing bilinear interpulation done!");
+		return ans;
 	}
 	
 	
