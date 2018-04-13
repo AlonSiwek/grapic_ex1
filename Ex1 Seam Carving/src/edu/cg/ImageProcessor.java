@@ -180,11 +180,8 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			ans.setRGB(x, y, color.getRGB());
 		});
 
-
 		logger.log("Changing nearest neighbor done!");
 		return ans;
-
-
 	}
 	
 	public BufferedImage bilinear() {
