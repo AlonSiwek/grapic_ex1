@@ -1,5 +1,6 @@
 package edu.cg;
 
+// simple class to describe a seam
 public class Seam {
     private int[] pixels;
     private int[] seamShifts;
@@ -16,14 +17,15 @@ public class Seam {
         tailPosition --;
     }
 
+    public void shiftSeam(int i, int shift){
+        seamShifts[i] = shift;
+    }
+
     public int getPixCol(int i){
         return pixels[i];
     }
 
     public int getColShift(int i){
         return seamShifts[i];
-    }
-    public void shiftSeam(int i, int shift){
-        seamShifts[i] = shift;
     }
 }

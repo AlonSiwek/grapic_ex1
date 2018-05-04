@@ -1,7 +1,8 @@
 package edu.cg;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SeamsCarver extends ImageProcessor {
 
@@ -18,7 +19,7 @@ public class SeamsCarver extends ImageProcessor {
 	private long[][] costMatrix;
 	private int[][] imageMatrix;
 	private char[][] trackingtMatrix;
-	private int workWidth;
+	private int currWidth;
 
 
 	//MARK: Constructor
@@ -42,31 +43,33 @@ public class SeamsCarver extends ImageProcessor {
 		else
 			resizeOp = this::duplicateWorkingImage;
 
-		workWidth = inWidth;
+		// initial calculations
+		currWidth = inWidth;
 		initialCalculations();
 	}
 
 	private void initialCalculations() {
-		energyMatrix = new long[inHeight][workWidth];
-		imageMatrix = new int[inHeight][workWidth];
+		energyMatrix = new long[inHeight][currWidth];
+		imageMatrix = new int[inHeight][currWidth];
 
 		calculateEnergy();
 		for (int i = 0; i < inHeight; i++) {
-			for (int j = 0; j < workWidth; j++) {
+			for (int j = 0; j < currWidth; j++) {
 				imageMatrix[i][j] = workingImage.getRGB(j, i);
 			}
 		}
 	}
 
 	private void calculateCostMatrix() {
-		costMatrix = new long[inHeight][workWidth];
-		trackingtMatrix = new char[inHeight][workWidth];
-
+		costMatrix = new long[inHeight][currWidth];
+		trackingtMatrix = new char[inHeight][currWidth];
 		long min, left, right, up;
 
-//		 IMPLEMENT FORWARD LOOKING //
+		logger.log("Calculating cost matrix");
+
+		// use dynamic programming to calculate minimal seam cost
 		for (int i = 0; i < inHeight; i++) {
-			for (int j = 0; j < workWidth; j++) {
+			for (int j = 0; j < currWidth; j++) {
 
 				// first row
 				if (i == 0) {
@@ -74,17 +77,17 @@ public class SeamsCarver extends ImageProcessor {
 					trackingtMatrix[i][j] = 's';
 				} else {
 					up = costMatrix[i - 1][j] + forwardLookingCost(i, j, 'u');
-					right = (j < workWidth - 1) ? costMatrix[i - 1][j + 1] + forwardLookingCost(i, j, 'r') : Long.MAX_VALUE;
+					right = (j < currWidth - 1) ? costMatrix[i - 1][j + 1] + forwardLookingCost(i, j, 'r') : Long.MAX_VALUE;
 					left = (j > 0) ? costMatrix[i - 1][j - 1] + forwardLookingCost(i, j, 'l') : Long.MAX_VALUE;
 					min = Math.min(left, Math.min(up, right));
 					costMatrix[i][j] = energyMatrix[i][j] + min;
 
-					if (min == left) {
-						trackingtMatrix[i][j] = 'l';
+					if (min == right) {
+						trackingtMatrix[i][j] = 'r';
 					} else if (min == up) {
 						trackingtMatrix[i][j] = 'u';
 					} else {
-						trackingtMatrix[i][j] = 'r';
+						trackingtMatrix[i][j] = 'l';
 					}
 				}
 			}
@@ -94,7 +97,7 @@ public class SeamsCarver extends ImageProcessor {
 	private long forwardLookingCost(int i, int j, char dir) {
 		long res;
 
-		if (j == workWidth - 1) {
+		if (j == currWidth - 1) {
 			res = toGray(imageMatrix[i][j - 1]);
 		} else if (j == 0) {
 			res = toGray(imageMatrix[i][j + 1]);
@@ -119,14 +122,15 @@ public class SeamsCarver extends ImageProcessor {
 		Seam seam = new Seam(inHeight);
 		int col = 0;
 		long min = Long.MAX_VALUE;
-		for (int j = 0; j < workWidth; j++) {
+		for (int j = 0; j < currWidth; j++) {
 			if (costMatrix[inHeight - 1][j] <= min) {
 				min = costMatrix[inHeight - 1][j];
 				col = j;
 			}
 		}
 
-//		System.out.println("Found min: " + min + " at index: " + col);
+		logger.log("Found min: " + min + " at index: " + col);
+		logger.log("Backtracking");
 
 		// backtrack
 		for (int i = inHeight - 1; i >= 0; i--) {
@@ -148,33 +152,32 @@ public class SeamsCarver extends ImageProcessor {
 	}
 
 	private void removeSeam(Seam seam) {
-		workWidth--;
-		long[][] tmpEnergyMatrix = new long[inHeight][workWidth];
-		int[][] tmpImageMatrix = new int[inHeight][workWidth];
+		currWidth--;
+		int[][] tmpImageMatrix = new int[inHeight][currWidth];
 		int shift, shiftCol;
 
+		logger.log("Removing seam");
 		for (int i = 0; i < inHeight; i++) {
 			shift = 0;
 			shiftCol = seam.getPixCol(i);
-			for (int j = 0; j < workWidth; j++) {
+			for (int j = 0; j < currWidth; j++) {
 				if (j == shiftCol) {
 					shift = 1;
 				}
 				tmpImageMatrix[i][j] = imageMatrix[i][j + shift];
-				tmpEnergyMatrix[i][j] = energyMatrix[i][j + shift];
 			}
 		}
 		imageMatrix = tmpImageMatrix;
-		energyMatrix = tmpEnergyMatrix;
 	}
 
 	private void calculateEnergy() {
+		energyMatrix = new long[inHeight][currWidth];
 		int nextCol, nextRow, currPix, nextColPix, nextRowPix;
 		double di, dj;
 
 		for (int i = 0; i < inHeight; i++) {
-			for (int j = 0; j < workWidth; j++) {
-				if (j == workWidth - 1) {
+			for (int j = 0; j < currWidth; j++) {
+				if (j == currWidth - 1) {
 					nextCol = j - 1;
 				} else{
 					nextCol = j + 1;
@@ -190,7 +193,7 @@ public class SeamsCarver extends ImageProcessor {
 				nextColPix = toGray(imageMatrix[i][nextCol]);
 				nextRowPix = toGray(imageMatrix[nextRow][j]);
 
-				//calculating magnitude
+				//calculate magnitude
 				dj = Math.pow(currPix - nextColPix, 2);
 				di = Math.pow(currPix - nextRowPix, 2);
 				energyMatrix[i][j] = (int) Math.sqrt((di + dj) / 2);
@@ -198,13 +201,33 @@ public class SeamsCarver extends ImageProcessor {
 		}
 	}
 
+	// helper function to calculate gray value
 	private int toGray(int rgb){
 		int r = (rgb >> 16) & 0xFF;
 		int g = (rgb >> 8) & 0xFF;
 		int b = (rgb & 0xFF);
 
 		int grayLevel = (r + g + b) / 3;
-		return grayLevel;//(grayLevel << 16) + (grayLevel << 8) + grayLevel;
+		return grayLevel;
+	}
+
+	// helper function to calculate absolute seam position
+	private void convertSeamPositions(Seam[] seams) {
+		int shift;
+
+		for (int i = 0; i < inHeight; i++) {
+			for (int k = 0; k < numOfSeams; k++) {
+				shift = 0;
+				for (int l = k - 1; l >= 0; l--) {
+
+					//account for previous shifts
+					if (seams[k].getPixCol(i) + shift >= seams[l].getPixCol(i)) {
+						shift++;
+					}
+				}
+				seams[k].shiftSeam(i, shift);
+			}
+		}
 	}
 
 	//MARK: Methods
@@ -213,6 +236,8 @@ public class SeamsCarver extends ImageProcessor {
 	}
 
 	private BufferedImage reduceImageWidth() {
+
+		// remove seams
 		for (int i = 0; i < numOfSeams; i++) {
 			calculateEnergy();
 			calculateCostMatrix();
@@ -222,7 +247,7 @@ public class SeamsCarver extends ImageProcessor {
 
 		BufferedImage outImage = newEmptyOutputSizedImage();
 		for (int i = 0; i < inHeight; i++) {
-			for (int j = 0; j < workWidth; j++) {
+			for (int j = 0; j < currWidth; j++) {
 				outImage.setRGB(j, i, imageMatrix[i][j]);
 			}
 		}
@@ -231,40 +256,35 @@ public class SeamsCarver extends ImageProcessor {
 
 	private BufferedImage increaseImageWidth() {
 		Seam[] seams = new Seam[numOfSeams];
+		Set<Integer>  seamsInRow;
 		int shift;
 
+		// remove and store seams
 		for (int i = 0; i < numOfSeams; i++) {
 			calculateEnergy();
 			calculateCostMatrix();
 			Seam seam = findMinSeam();
+
+			logger.log("Storing seam");
 			seams[i] = seam;
 			removeSeam(seam);
 		}
 
-		// convert seams to original positions
-		for (int i = 0; i < inHeight; i++) {
-			for (int k = 0; k < numOfSeams; k++) {
-				shift = 0;
-				for (int l = k - 1; l >= 0; l--) {
-
-					//account for previous shifts
-					if (seams[k].getPixCol(i) + shift >= seams[l].getPixCol(i)) {
-						shift++;
-					}
-				}
-				seams[k].shiftSeam(i, shift);
-			}
-		}
-
+		convertSeamPositions(seams);
 		BufferedImage outImage = newEmptyOutputSizedImage();
 		for (int i = 0; i < inHeight; i++) {
 			shift = 0;
+			seamsInRow = new HashSet<Integer>();
+
+			// add seams positions per row
+			for (int k = 0; k < numOfSeams; k++) {
+				seamsInRow.add(seams[k].getPixCol(i) + seams[k].getColShift(i));
+			}
+
 			for (int j = 0; j < outWidth; j++) {
 				outImage.setRGB(j, i, workingImage.getRGB((j - shift), i));
-				for (int k = 0; k < numOfSeams; k++) {
-					if (seams[k].getPixCol(i) + seams[k].getColShift(i) == j) {
-						shift++;
-					}
+				if (seamsInRow.contains(j)) {
+					shift++;
 				}
 			}
 		}
@@ -273,44 +293,35 @@ public class SeamsCarver extends ImageProcessor {
 
 	public BufferedImage showSeams(int seamColorRGB) {
 		Seam[] seams = new Seam[numOfSeams];
-		int shift;
+		Set<Integer>  seamsInRow;
 
+		// remove and store seams
 		for (int i = 0; i < numOfSeams; i++) {
 			calculateEnergy();
 			calculateCostMatrix();
 			Seam seam = findMinSeam();
+
+			logger.log("Storing seam");
 			seams[i] = seam;
 			removeSeam(seam);
 		}
 
-		// convert seams to original positions
-		for (int i = 0; i < inHeight; i++) {
-			for (int k = 0; k < numOfSeams; k++) {
-				shift = 0;
-				for (int l = k - 1; l >= 0; l--) {
-
-					//account for previous shifts
-					if (seams[k].getPixCol(i) + shift >= seams[l].getPixCol(i)) {
-						shift++;
-					}
-				}
-				seams[k].shiftSeam(i, shift);
-			}
-		}
-
+		convertSeamPositions(seams);
 		BufferedImage outImage = newEmptyInputSizedImage();
 		for (int i = 0; i < inHeight; i++) {
-			for (int j = 0; j < inWidth; j++) {
-				boolean flag = true;
+			seamsInRow = new HashSet<Integer>();
 
-				for (int k = 0; k < numOfSeams; k++) {
-					if (seams[k].getPixCol(i) + seams[k].getColShift(i) == j) {
-						outImage.setRGB(j, i, seamColorRGB);
-						flag = false;
-					}
-				}
-				if( flag == true)
+			// add seams positions per row
+			for (int k = 0; k < numOfSeams; k++) {
+				seamsInRow.add(seams[k].getPixCol(i) + seams[k].getColShift(i));
+			}
+
+			for (int j = 0; j < inWidth; j++) {
+				if (seamsInRow.contains(j)) {
+					outImage.setRGB(j, i, seamColorRGB);
+				} else {
 					outImage.setRGB(j, i, workingImage.getRGB((j), i));
+				}
 			}
 		}
 		return outImage;
